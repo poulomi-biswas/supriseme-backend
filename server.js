@@ -18,7 +18,7 @@ app.post("/api/suggestions", async (req, res) => {
   const prompt = `Give creative, specific and fun gift suggestions for the following:\nCategory: ${category}\nHint: ${hint}\nBudget: ${budget}\nSuggestions:`;
 
   try {
-    const response = await fetch("https://api-inference.huggingface.co/models/google/flan-t5-large", {
+    const response = await fetch("https://huggingface.co/google/flan-t5-large", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.HF_API_KEY}`,
