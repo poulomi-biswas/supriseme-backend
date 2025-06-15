@@ -1,41 +1,46 @@
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-require('dotenv').config();
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
 
 const app = express();
+const port = process.env.PORT || 10000;
+
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-app.post('/api/suggestions', async (req, res) => {
-  const { hint, category, budget } = req.body;
+app.get("/", (req, res) => {
+  res.send("🎉 Surprise Suggestion Backend is running!");
+});
 
-  const prompt = `Suggest 5 unique gift ideas in the "${category}" category under ₹${budget} with hint: ${hint}. Keep it concise and creative.`;
+app.post("/api/suggestions", async (req, res) => {
+  const { category, hint, budget } = req.body;
+
+  const prompt = `Give creative, specific and fun gift suggestions for the following:\nCategory: ${category}\nHint: ${hint}\nBudget: ${budget}\nSuggestions:`;
 
   try {
-    const response = await axios.post(
-      'https://api-inference.huggingface.co/models/google/flan-t5-large',
-      {
-        inputs: prompt
+    const response = await fetch("https://api-inference.huggingface.co/models/google/flan-t5-large", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.HF_API_KEY}`,
+        "Content-Type": "application/json"
       },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.HF_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+      body: JSON.stringify({ inputs: prompt })
+    });
 
-    const text = response.data?.[0]?.generated_text || "⚠️ No suggestions returned.";
-    res.json({ suggestions: text });
+    if (!response.ok) {
+      console.error("❌ AI Error:", await response.text());
+      return res.status(500).json({ suggestions: "⚠️ AI failed to generate suggestions." });
+    }
 
-  } catch (error) {
-    console.error('❌ AI Error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'AI suggestion failed.' });
+    const result = await response.json();
+    const suggestions = result[0]?.generated_text || "⚠️ AI returned no suggestions.";
+    res.json({ suggestions });
+  } catch (err) {
+    console.error("❌ AI Error:", err.message);
+    res.status(500).json({ suggestions: "⚠️ Error generating suggestions." });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+app.listen(port, () => {
+  console.log(`✅ Server running on http://localhost:${port}`);
 });
