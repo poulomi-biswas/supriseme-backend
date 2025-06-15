@@ -10,11 +10,11 @@ app.use(express.json());
 app.post('/api/suggestions', async (req, res) => {
   const { hint, category, budget } = req.body;
 
-  const prompt = `Give 5 unique surprise gift ideas in the "${category}" category under ₹${budget}. Hint: ${hint}. Reply in short bullet points.`;
+  const prompt = `Suggest 5 unique gift ideas in the "${category}" category under ₹${budget} with hint: ${hint}. Keep it concise and creative.`;
 
   try {
     const response = await axios.post(
-      'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1',
+      'https://api-inference.huggingface.co/models/google/flan-t5-large',
       {
         inputs: prompt
       },
@@ -26,13 +26,8 @@ app.post('/api/suggestions', async (req, res) => {
       }
     );
 
-    const generatedText = response.data?.generated_text || response.data[0]?.generated_text;
-
-    if (!generatedText) {
-      throw new Error('No suggestions returned from Hugging Face.');
-    }
-
-    res.json({ suggestions: generatedText });
+    const text = response.data?.[0]?.generated_text || "⚠️ No suggestions returned.";
+    res.json({ suggestions: text });
 
   } catch (error) {
     console.error('❌ AI Error:', error.response?.data || error.message);
